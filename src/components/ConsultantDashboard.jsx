@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+
+// Use backend API base from env in production; fall back to localhost for dev
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 import { useNavigate } from 'react-router-dom'
 
 export default function ConsultantDashboard() {
@@ -238,7 +241,7 @@ export default function ConsultantDashboard() {
             company_name: data[0].companies?.name || null
           };
           
-          await fetch(`http://localhost:3001/api/transactions/update/${editedTransaction.id}`, {
+          await fetch(`${API_BASE_URL}/api/transactions/update/${editedTransaction.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sharePointData)

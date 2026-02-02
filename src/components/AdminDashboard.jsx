@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 
+// Use backend API base from env in production; fall back to localhost for dev
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
 export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [username, setUsername] = useState('')
@@ -609,7 +612,7 @@ export default function AdminDashboard() {
       // Update SharePoint Excel
       if (data && data[0]) {
         try {
-          await fetch(`http://localhost:3001/api/transactions/update/${transactionId}`, {
+          await fetch(`${API_BASE_URL}/api/transactions/update/${transactionId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data[0])
@@ -739,8 +742,8 @@ export default function AdminDashboard() {
   const openSharePointExcel = async (companyName = null) => {
     try {
       const url = companyName 
-        ? `http://localhost:3001/api/excel/url?companyName=${encodeURIComponent(companyName)}`
-        : 'http://localhost:3001/api/excel/url';
+        ? `${API_BASE_URL}/api/excel/url?companyName=${encodeURIComponent(companyName)}`
+        : `${API_BASE_URL}/api/excel/url`;
       
       const response = await fetch(url)
       const data = await response.json()
@@ -761,7 +764,7 @@ export default function AdminDashboard() {
     console.log('User Role:', userRole);
     try {
       console.log('Loading company Excel files...');
-      const response = await fetch('http://localhost:3001/api/excel/companies')
+      const response = await fetch(`${API_BASE_URL}/api/excel/companies`)
       console.log('Response status:', response.status);
       const data = await response.json()
       console.log('Response data:', data);
@@ -769,7 +772,7 @@ export default function AdminDashboard() {
       if (data.success) {
         console.log('Fetching default Excel URL...');
         // Get the URL for "Gold Gateway - IBV Gold KZN" (default Transactions.xlsx)
-        const defaultUrlResponse = await fetch('http://localhost:3001/api/excel/url?companyName=Gold Gateway - IBV Gold KZN')
+        const defaultUrlResponse = await fetch(`${API_BASE_URL}/api/excel/url?companyName=Gold Gateway - IBV Gold KZN`)
         const defaultUrlData = await defaultUrlResponse.json()
         console.log('Default URL data:', defaultUrlData);
         

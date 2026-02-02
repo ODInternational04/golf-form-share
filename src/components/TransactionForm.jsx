@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 
+// Use backend API base from env in production; fall back to localhost for dev
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
 const DEFAULT_PRODUCTS = [
   'Gold Bar 1oz',
   'Gold Bar 5g',
@@ -283,7 +286,7 @@ export default function TransactionForm() {
           company_name: data[0].companies?.name || null
         };
         
-        await fetch('http://localhost:3001/api/transactions/add', {
+        await fetch(`${API_BASE_URL}/api/transactions/add`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(sharePointData)
