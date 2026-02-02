@@ -58,6 +58,13 @@ export default function AdminDashboard() {
   const [editingCompany, setEditingCompany] = useState(null)
   const [newCompany, setNewCompany] = useState({ code: '', name: '' })
 
+  // Audit log state (Master Admin)
+  const [showAuditLog, setShowAuditLog] = useState(false)
+  const [auditLogs, setAuditLogs] = useState([])
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditError, setAuditError] = useState('')
+  const [auditFilters, setAuditFilters] = useState({ user: 'all', from: '', to: '', search: '' })
+
   useEffect(() => {
     // Check session storage
     const loggedIn = sessionStorage.getItem('adminLoggedIn')
@@ -87,6 +94,13 @@ export default function AdminDashboard() {
       applyFilters()
     }
   }, [transactions, filterPeriod, filterStatus, searchTerm, clientTab])
+
+  // Load audit logs when the audit tab is opened
+  useEffect(() => {
+    if (showAuditLog && userRole === 'Master Admin') {
+      loadAuditLogs()
+    }
+  }, [showAuditLog, userRole])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -210,6 +224,27 @@ export default function AdminDashboard() {
       setCompanies(data || [])
     } catch (error) {
       console.error('Error loading companies:', error)
+    }
+  }
+
+  const loadAuditLogs = async () => {
+    setAuditLoading(true)
+    setAuditError('')
+    try {
+      // Fetch recent audit events; adjust table/columns as needed
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500)
+
+      if (error) throw error
+      setAuditLogs(data || [])
+    } catch (error) {
+      console.error('Error loading audit logs:', error)
+      setAuditError(error.message || 'Failed to load audit logs')
+    } finally {
+      setAuditLoading(false)
     }
   }
   
@@ -846,6 +881,7 @@ export default function AdminDashboard() {
                 onClick={() => {
                   setShowUserManagement(!showUserManagement)
                   setShowCompanyManagement(false)
+                  setShowAuditLog(false)
                 }} 
                 className="logout-btn"
                 style={{ backgroundColor: '#4CAF50' }}
@@ -856,11 +892,23 @@ export default function AdminDashboard() {
                 onClick={() => {
                   setShowCompanyManagement(!showCompanyManagement)
                   setShowUserManagement(false)
+                  setShowAuditLog(false)
                 }} 
                 className="logout-btn"
                 style={{ backgroundColor: '#FF9800' }}
               >
                 {showCompanyManagement ? 'View Transactions' : 'Manage Companies'}
+              </button>
+              <button 
+                onClick={() => {
+                  setShowAuditLog(!showAuditLog)
+                  setShowUserManagement(false)
+                  setShowCompanyManagement(false)
+                }} 
+                className="logout-btn"
+                style={{ backgroundColor: '#3f51b5' }}
+              >
+                {showAuditLog ? 'View Transactions' : 'Audit Log'}
               </button>
             </>
           )}
@@ -868,7 +916,106 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {showCompanyManagement && userRole === 'Master Admin' ? (
+      {showAuditLog && userRole === 'Master Admin' ? (
+        <div className="user-management">
+          <h2>Audit Log</h2>
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px' }}>
+            <div className="form-group" style={{ minWidth: '200px' }}>
+              <label>User</label>
+              <select
+                value={auditFilters.user}
+                onChange={(e) => setAuditFilters({ ...auditFilters, user: e.target.value })}
+              >
+                <option value="all">All users</option>
+                {[...new Set(auditLogs.map(log => log.actor))]
+                  .filter(Boolean)
+                  .map(user => (
+                    <option key={user} value={user}>{user}</option>
+                  ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>From</label>
+              <input
+                type="date"
+                value={auditFilters.from}
+                onChange={(e) => setAuditFilters({ ...auditFilters, from: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>To</label>
+              <input
+                type="date"
+                value={auditFilters.to}
+                onChange={(e) => setAuditFilters({ ...auditFilters, to: e.target.value })}
+              />
+            </div>
+            <div className="form-group" style={{ flexGrow: 1, minWidth: '200px' }}>
+              <label>Search</label>
+              <input
+                type="text"
+                placeholder="Search action or details"
+                value={auditFilters.search}
+                onChange={(e) => setAuditFilters({ ...auditFilters, search: e.target.value })}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+              <button className="btn" onClick={loadAuditLogs} disabled={auditLoading}>
+                {auditLoading ? 'Loading…' : 'Refresh'}
+              </button>
+              <button
+                className="btn"
+                style={{ backgroundColor: '#777' }}
+                onClick={() => setAuditFilters({ user: 'all', from: '', to: '', search: '' })}
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+
+          {auditError && (
+            <div className="error-message" style={{ marginBottom: '10px' }}>
+              {auditError}
+            </div>
+          )}
+
+          <div className="transactions-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditLogs
+                  .filter((log) => {
+                    const userOk = auditFilters.user === 'all' || log.actor === auditFilters.user
+                    const fromOk = !auditFilters.from || new Date(log.created_at) >= new Date(auditFilters.from)
+                    const toOk = !auditFilters.to || new Date(log.created_at) <= new Date(auditFilters.to + 'T23:59:59')
+                    const searchText = (auditFilters.search || '').toLowerCase()
+                    const searchOk = !searchText || (
+                      (log.action || '').toLowerCase().includes(searchText) ||
+                      (log.details || '').toLowerCase().includes(searchText)
+                    )
+                    return userOk && fromOk && toOk && searchOk
+                  })
+                  .map((log) => (
+                    <tr key={log.id || `${log.actor}-${log.created_at}`}>
+                      <td>{log.created_at ? new Date(log.created_at).toLocaleString() : ''}</td>
+                      <td>{log.actor || '-'}</td>
+                      <td><strong>{log.action || '-'}</strong></td>
+                      <td style={{ maxWidth: '400px', whiteSpace: 'pre-wrap' }}>{log.details || '-'}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : showCompanyManagement && userRole === 'Master Admin' ? (
         // Company Management Section
         <div className="user-management">
           <h2>Company Management</h2>
