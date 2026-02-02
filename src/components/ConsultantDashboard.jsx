@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 // Use backend API base from env in production; fall back to localhost for dev
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
-import { useNavigate } from 'react-router-dom'
 
 export default function ConsultantDashboard() {
   const navigate = useNavigate()
