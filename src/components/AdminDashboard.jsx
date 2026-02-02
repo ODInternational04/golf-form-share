@@ -61,6 +61,7 @@ export default function AdminDashboard() {
   // Audit log state (Master Admin)
   const [showAuditLog, setShowAuditLog] = useState(false)
   const [auditLogs, setAuditLogs] = useState([])
+  const [auditUsers, setAuditUsers] = useState([])
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditError, setAuditError] = useState('')
   const [auditFilters, setAuditFilters] = useState({ user: 'all', from: '', to: '', search: '' })
@@ -99,6 +100,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (showAuditLog && userRole === 'Master Admin') {
       loadAuditLogs()
+      loadAuditUsers()
     }
   }, [showAuditLog, userRole])
 
@@ -245,6 +247,21 @@ export default function AdminDashboard() {
       setAuditError(error.message || 'Failed to load audit logs')
     } finally {
       setAuditLoading(false)
+    }
+  }
+
+  const loadAuditUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('username')
+        .order('username')
+
+      if (error) throw error
+      const unique = Array.from(new Set((data || []).map(u => u.username))).filter(Boolean)
+      setAuditUsers(unique)
+    } catch (error) {
+      console.error('Error loading audit users:', error)
     }
   }
   
@@ -928,7 +945,7 @@ export default function AdminDashboard() {
                 onChange={(e) => setAuditFilters({ ...auditFilters, user: e.target.value })}
               >
                 <option value="all">All users</option>
-                {[...new Set(auditLogs.map(log => log.actor))]
+                {[...new Set([...(auditUsers || []), ...auditLogs.map(log => log.actor)])]
                   .filter(Boolean)
                   .map(user => (
                     <option key={user} value={user}>{user}</option>
