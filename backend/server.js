@@ -238,11 +238,16 @@ app.get('/api/excel/companies', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-  console.log('Initializing SharePoint connection...');
-  initializeSharePoint()
-    .then(() => console.log('SharePoint initialized successfully'))
-    .catch(err => console.error('Failed to initialize SharePoint:', err));
-});
+// Start server only when not running in a serverless environment (e.g., Vercel)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+    console.log('Initializing SharePoint connection...');
+    initializeSharePoint()
+      .then(() => console.log('SharePoint initialized successfully'))
+      .catch(err => console.error('Failed to initialize SharePoint:', err));
+  });
+}
+
+// Export the Express app for serverless platforms
+module.exports = app;
