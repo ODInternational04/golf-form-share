@@ -7,12 +7,29 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map(origin => origin.trim());
+const allowedOrigins = (process.env.FRONTEND_URL || '').split(',').map(o => o.trim()).filter(Boolean);
+const vercelDomainRegex = /\.vercel\.app$/; // allow any vercel.app preview by default
 
 app.use(cors({
-  origin: allowedOrigins
+  origin: (origin, callback) => {
+    // No origin (e.g., curl, mobile apps) -> allow
+    if (!origin) return callback(null, true);
+
+    try {
+      const hostname = new URL(origin).hostname;
+
+      const isAllowedList = allowedOrigins.includes(origin);
+      const isVercelPreview = vercelDomainRegex.test(hostname);
+
+      if (isAllowedList || isVercelPreview) {
+        return callback(null, true);
+      }
+    } catch (err) {
+      // Fall through to reject
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  }
 }));
 app.use(express.json());
 
