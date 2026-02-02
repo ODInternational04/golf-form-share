@@ -683,6 +683,8 @@ export default function AdminDashboard() {
           })
           await recordAudit('transaction_update', {
             transaction_id: transactionId,
+            client_name: data[0]?.client_name,
+            client_id: data[0]?.id_passport,
             actor: currentUser,
             status: 'approved'
           })
@@ -723,6 +725,8 @@ export default function AdminDashboard() {
       console.log('Delete successful:', data)
       await recordAudit('transaction_delete', {
         transaction_id: transactionId,
+        client_name: selectedTransaction?.client_name,
+        client_id: selectedTransaction?.id_passport,
         actor: currentUser
       })
       alert('✓ Transaction deleted successfully!')

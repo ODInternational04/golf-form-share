@@ -293,6 +293,8 @@ export default function TransactionForm() {
       await recordAudit('transaction_create', {
         transaction_id: data?.[0]?.id,
         company: data?.[0]?.companies?.name,
+        client_name: data?.[0]?.client_name,
+        client_id: data?.[0]?.id_passport,
         actor: consultantUsername
       })
 

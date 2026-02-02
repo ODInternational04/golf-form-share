@@ -260,6 +260,8 @@ export default function ConsultantDashboard() {
           })
           await recordAudit('transaction_update', {
             transaction_id: editedTransaction.id,
+            client_name: editedTransaction.client_name,
+            client_id: editedTransaction.id_passport,
             actor: currentUser?.username,
             fields: Object.keys(editedTransaction || {})
           })
