@@ -78,6 +78,46 @@ export default function AdminDashboard() {
     }
   }
 
+  const renderAuditDetails = (details) => {
+    if (!details) return '-'
+
+    let parsed = details
+    if (typeof details === 'string') {
+      try {
+        parsed = JSON.parse(details)
+      } catch (err) {
+        return details
+      }
+    }
+
+    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return String(parsed)
+    }
+
+    const parts = []
+    if (parsed.transaction_id) parts.push(`Txn #${parsed.transaction_id}`)
+    if (parsed.client_name) parts.push(`Client: ${parsed.client_name}`)
+    if (parsed.client_id) parts.push(`Client ID: ${parsed.client_id}`)
+    if (parsed.company) parts.push(`Company: ${parsed.company}`)
+    if (parsed.status) parts.push(`Status: ${parsed.status}`)
+
+    // Include changed fields summary if present
+    if (parsed.fields) {
+      const fields = Array.isArray(parsed.fields) ? parsed.fields.join(', ') : parsed.fields
+      parts.push(`Fields: ${fields}`)
+    }
+
+    // Add any remaining key/value pairs not already captured
+    const consumed = ['transaction_id', 'client_name', 'client_id', 'company', 'status', 'fields']
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (consumed.includes(key)) return
+      if (value === undefined || value === null || value === '') return
+      parts.push(`${key}: ${value}`)
+    })
+
+    return parts.length ? parts.join(' • ') : '-'
+  }
+
   useEffect(() => {
     // Check session storage
     const loggedIn = sessionStorage.getItem('adminLoggedIn')
@@ -1050,7 +1090,9 @@ export default function AdminDashboard() {
                       <td>{log.created_at ? new Date(log.created_at).toLocaleString() : ''}</td>
                       <td>{log.actor || '-'}</td>
                       <td><strong>{log.action || '-'}</strong></td>
-                      <td style={{ maxWidth: '400px', whiteSpace: 'pre-wrap' }}>{log.details || '-'}</td>
+                      <td style={{ maxWidth: '400px', whiteSpace: 'pre-wrap' }}>
+                        {renderAuditDetails(log.details)}
+                      </td>
                     </tr>
                   ))}
               </tbody>
