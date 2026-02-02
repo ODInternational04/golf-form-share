@@ -30,6 +30,18 @@ export default function TransactionForm() {
   const [consultantCompanyId, setConsultantCompanyId] = useState(null)
   const [consultantCompanyName, setConsultantCompanyName] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const recordAudit = async (action, details = {}) => {
+    try {
+      await supabase.from('audit_logs').insert([{
+        actor: consultantUsername || 'unknown',
+        action,
+        details: JSON.stringify(details)
+      }])
+    } catch (err) {
+      console.warn('Audit log failed', err.message)
+    }
+  }
   
   useEffect(() => {
     // Check session storage for consultant login
@@ -277,6 +289,12 @@ export default function TransactionForm() {
         .select('*, companies(name)')
 
       if (error) throw error
+
+      await recordAudit('transaction_create', {
+        transaction_id: data?.[0]?.id,
+        company: data?.[0]?.companies?.name,
+        actor: consultantUsername
+      })
 
       // Send to SharePoint Excel
       try {

@@ -66,6 +66,18 @@ export default function AdminDashboard() {
   const [auditError, setAuditError] = useState('')
   const [auditFilters, setAuditFilters] = useState({ user: 'all', from: '', to: '', search: '' })
 
+  const recordAudit = async (action, details = {}) => {
+    try {
+      await supabase.from('audit_logs').insert([{
+        actor: currentUser || 'unknown',
+        action,
+        details: JSON.stringify(details)
+      }])
+    } catch (err) {
+      console.warn('Audit log failed', err.message)
+    }
+  }
+
   useEffect(() => {
     // Check session storage
     const loggedIn = sessionStorage.getItem('adminLoggedIn')
@@ -669,6 +681,11 @@ export default function AdminDashboard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data[0])
           })
+          await recordAudit('transaction_update', {
+            transaction_id: transactionId,
+            actor: currentUser,
+            status: 'approved'
+          })
         } catch (spError) {
           console.error('Error updating SharePoint:', spError)
           // Don't fail the approval if SharePoint fails
@@ -704,6 +721,10 @@ export default function AdminDashboard() {
       }
 
       console.log('Delete successful:', data)
+      await recordAudit('transaction_delete', {
+        transaction_id: transactionId,
+        actor: currentUser
+      })
       alert('✓ Transaction deleted successfully!')
       closeModal()
       await loadTransactions()

@@ -23,6 +23,18 @@ export default function ConsultantDashboard() {
   const [clientTab, setClientTab] = useState('all') // 'all' | 'individual' | 'company'
   const [filteredTransactions, setFilteredTransactions] = useState([])
 
+  const recordAudit = async (action, details = {}) => {
+    try {
+      await supabase.from('audit_logs').insert([{
+        actor: currentUser?.username || 'unknown',
+        action,
+        details: JSON.stringify(details)
+      }])
+    } catch (err) {
+      console.warn('Audit log failed', err.message)
+    }
+  }
+
   useEffect(() => {
     // Check session storage
     const loggedIn = sessionStorage.getItem('consultantLoggedIn')
@@ -245,6 +257,11 @@ export default function ConsultantDashboard() {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sharePointData)
+          })
+          await recordAudit('transaction_update', {
+            transaction_id: editedTransaction.id,
+            actor: currentUser?.username,
+            fields: Object.keys(editedTransaction || {})
           })
         } catch (spError) {
           console.error('Error updating SharePoint:', spError)
