@@ -1924,7 +1924,7 @@ export default function AdminDashboard() {
             <div style={{ marginBottom: '25px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
               <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>7. TREASURY/ STOCK CONTROL</h3>
               <div style={{ marginTop: '15px' }}>
-                <p><strong>Stock Status:</strong> {selectedTransaction.treasury_stock || 'N/A'}</p>
+                <p><strong>Stock Status:</strong> {selectedTransaction.treasury_stock_control || 'N/A'}</p>
                 <p><strong>Treasury/Stock Control Notes:</strong> {selectedTransaction.treasury_stock_notes || 'N/A'}</p>
               </div>
             </div>
@@ -1943,13 +1943,13 @@ export default function AdminDashboard() {
             {/* 9. INTERNAL/EXTERNAL AUDIT */}
             <div style={{ marginBottom: '25px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
               <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>9. INTERNAL/ EXTERNAL AUDIT</h3>
-              <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.audit || 'N/A'}</p>
+              <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.internal_external_audit || 'N/A'}</p>
             </div>
 
             {/* 10. AI SYSTEMS REVIEW */}
             <div style={{ marginBottom: '25px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
               <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>10. AI SYSTEMS REVIEW</h3>
-              <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.ai_review || 'N/A'}</p>
+              <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.ai_systems_review || 'N/A'}</p>
             </div>
 
             {/* NOTES */}

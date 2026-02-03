@@ -1118,12 +1118,12 @@ export default function ConsultantDashboard() {
                   <strong>Stock Status:</strong> {editMode ? (
                     <input
                       type="text"
-                      value={editedTransaction.treasury_stock || ''}
-                      onChange={(e) => setEditedTransaction({...editedTransaction, treasury_stock: e.target.value})}
+                      value={editedTransaction.treasury_stock_control || ''}
+                      onChange={(e) => setEditedTransaction({...editedTransaction, treasury_stock_control: e.target.value})}
                       style={{ marginLeft: '10px', padding: '5px', width: '60%' }}
                     />
                   ) : (
-                    <span> {selectedTransaction.treasury_stock || 'N/A'}</span>
+                    <span> {selectedTransaction.treasury_stock_control || 'N/A'}</span>
                   )}
                 </p>
                 <p>
@@ -1188,12 +1188,12 @@ export default function ConsultantDashboard() {
               <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>9. INTERNAL/ EXTERNAL AUDIT</h3>
               {editMode ? (
                 <textarea
-                  value={editedTransaction.audit || ''}
-                  onChange={(e) => setEditedTransaction({...editedTransaction, audit: e.target.value})}
+                  value={editedTransaction.internal_external_audit || ''}
+                  onChange={(e) => setEditedTransaction({...editedTransaction, internal_external_audit: e.target.value})}
                   style={{ width: '100%', marginTop: '15px', padding: '10px', minHeight: '80px' }}
                 />
               ) : (
-                <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.audit || 'N/A'}</p>
+                <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.internal_external_audit || 'N/A'}</p>
               )}
             </div>
 
@@ -1202,12 +1202,12 @@ export default function ConsultantDashboard() {
               <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>10. AI SYSTEMS REVIEW</h3>
               {editMode ? (
                 <textarea
-                  value={editedTransaction.ai_review || ''}
-                  onChange={(e) => setEditedTransaction({...editedTransaction, ai_review: e.target.value})}
+                  value={editedTransaction.ai_systems_review || ''}
+                  onChange={(e) => setEditedTransaction({...editedTransaction, ai_systems_review: e.target.value})}
                   style={{ width: '100%', marginTop: '15px', padding: '10px', minHeight: '80px' }}
                 />
               ) : (
-                <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.ai_review || 'N/A'}</p>
+                <p style={{ marginTop: '15px', whiteSpace: 'pre-wrap' }}>{selectedTransaction.ai_systems_review || 'N/A'}</p>
               )}
             </div>
 
