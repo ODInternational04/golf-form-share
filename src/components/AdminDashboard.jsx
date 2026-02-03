@@ -94,28 +94,84 @@ export default function AdminDashboard() {
       return String(parsed)
     }
 
-    const parts = []
-    if (parsed.transaction_id) parts.push(`Txn #${parsed.transaction_id}`)
-    if (parsed.client_name) parts.push(`Client: ${parsed.client_name}`)
-    if (parsed.client_id) parts.push(`Client ID: ${parsed.client_id}`)
-    if (parsed.company) parts.push(`Company: ${parsed.company}`)
-    if (parsed.status) parts.push(`Status: ${parsed.status}`)
-
-    // Include changed fields summary if present
-    if (parsed.fields) {
-      const fields = Array.isArray(parsed.fields) ? parsed.fields.join(', ') : parsed.fields
-      parts.push(`Fields: ${fields}`)
+    // Build a clean, readable summary
+    const lines = []
+    
+    // Transaction identifier
+    if (parsed.transaction_id) {
+      lines.push(`Transaction #${parsed.transaction_id}`)
     }
-
-    // Add any remaining key/value pairs not already captured
-    const consumed = ['transaction_id', 'client_name', 'client_id', 'company', 'status', 'fields']
+    
+    // Client info (if relevant)
+    if (parsed.client_name) {
+      lines.push(`Client: ${parsed.client_name}`)
+    }
+    
+    // Company info
+    if (parsed.company) {
+      lines.push(`Company: ${parsed.company}`)
+    }
+    
+    // Approval info - highlight this
+    if (parsed.role) {
+      lines.push(`\n✅ Approved by: ${parsed.role}`)
+      if (parsed.approved_by) {
+        lines.push(`Approver: ${parsed.approved_by}`)
+      }
+    }
+    
+    // Status changes
+    if (parsed.status && !parsed.role) {
+      lines.push(`Status: ${parsed.status}`)
+    }
+    
+    // Changed fields - make it readable
+    if (parsed.changes) {
+      const changes = typeof parsed.changes === 'string' ? JSON.parse(parsed.changes) : parsed.changes
+      const changeCount = Object.keys(changes).length
+      
+      if (changeCount > 0) {
+        lines.push(`\n📝 ${changeCount} field${changeCount > 1 ? 's' : ''} updated:`)
+        Object.entries(changes).forEach(([field, change]) => {
+          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          const from = change.from || '(empty)'
+          const to = change.to || '(empty)'
+          
+          // Format based on field type
+          if (typeof change.from === 'boolean' || typeof change.to === 'boolean') {
+            lines.push(`  • ${fieldName}: ${from ? 'Yes' : 'No'} → ${to ? 'Yes' : 'No'}`)
+          } else if (field === 'items' || typeof change.to === 'object') {
+            lines.push(`  • ${fieldName}: Updated`)
+          } else if (String(from).length > 50 || String(to).length > 50) {
+            lines.push(`  • ${fieldName}: Modified`)
+          } else {
+            lines.push(`  • ${fieldName}: "${from}" → "${to}"`)
+          }
+        })
+      }
+    } else if (parsed.fields) {
+      // Fallback for old format - just show field names
+      const fields = Array.isArray(parsed.fields) ? parsed.fields : [parsed.fields]
+      const readableFields = fields
+        .filter(f => !['actor', 'transaction_id', 'client_name', 'client_id', 'company', 'companies'].includes(f))
+        .map(f => f.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
+        .slice(0, 5) // Limit to first 5 fields
+      
+      if (readableFields.length > 0) {
+        lines.push(`Updated: ${readableFields.join(', ')}${fields.length > 5 ? ` (+${fields.length - 5} more)` : ''}`)
+      }
+    }
+    
+    // Other relevant info (excluding redundant fields)
+    const consumed = ['transaction_id', 'client_name', 'client_id', 'company', 'status', 'fields', 'changes', 'actor', 'companies', 'role', 'approved_by']
     Object.entries(parsed).forEach(([key, value]) => {
       if (consumed.includes(key)) return
       if (value === undefined || value === null || value === '') return
-      parts.push(`${key}: ${value}`)
+      const keyName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+      lines.push(`${keyName}: ${value}`)
     })
 
-    return parts.length ? parts.join(' • ') : '-'
+    return lines.length ? lines.join('\n') : '-'
   }
 
   useEffect(() => {
@@ -713,6 +769,20 @@ export default function AdminDashboard() {
 
       if (error) throw error
 
+      // Record audit log FIRST (before SharePoint so it always happens)
+      try {
+        await recordAudit('transaction_approval', {
+          transaction_id: transactionId,
+          client_name: data[0]?.client_name,
+          company: data[0]?.company_name,
+          role: role,
+          approved_by: currentUserFullName || currentUser
+        })
+        console.log('✅ Approval audit log recorded')
+      } catch (auditError) {
+        console.error('❌ Approval audit log failed:', auditError)
+      }
+
       // Update SharePoint Excel
       if (data && data[0]) {
         try {
@@ -721,15 +791,9 @@ export default function AdminDashboard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data[0])
           })
-          await recordAudit('transaction_update', {
-            transaction_id: transactionId,
-            client_name: data[0]?.client_name,
-            client_id: data[0]?.id_passport,
-            actor: currentUser,
-            status: 'approved'
-          })
+          console.log('✅ SharePoint updated for approval')
         } catch (spError) {
-          console.error('Error updating SharePoint:', spError)
+          console.error('❌ SharePoint update failed:', spError)
           // Don't fail the approval if SharePoint fails
         }
       }
@@ -1090,7 +1154,7 @@ export default function AdminDashboard() {
                       <td>{log.created_at ? new Date(log.created_at).toLocaleString() : ''}</td>
                       <td>{log.actor || '-'}</td>
                       <td><strong>{log.action || '-'}</strong></td>
-                      <td style={{ maxWidth: '400px', whiteSpace: 'pre-wrap' }}>
+                      <td style={{ maxWidth: '500px', whiteSpace: 'pre-wrap', fontSize: '0.9em', lineHeight: '1.6' }}>
                         {renderAuditDetails(log.details)}
                       </td>
                     </tr>
@@ -1827,9 +1891,9 @@ export default function AdminDashboard() {
               <h3 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>4. COMPLIANCE DETAILS</h3>
               <div style={{ marginTop: '15px' }}>
                 <p><strong>Customer Risk Matrix:</strong> {selectedTransaction.customer_risk_matrix || 'N/A'}</p>
-                <p><strong>TFS/ Sanction Screening:</strong> {selectedTransaction.tfs_sanction_screening ? '✓ Yes' : '✗ No'}</p>
+                <p><strong>TFS/ Sanction Screening:</strong> {selectedTransaction.tfs_screening ? '✓ Yes' : '✗ No'}</p>
                 <p><strong>AML Report Number:</strong> {selectedTransaction.aml_report_number || 'N/A'}</p>
-                <p><strong>KYC Documents Received:</strong> {selectedTransaction.kyc_documents ? '✓ Yes' : '✗ No'}</p>
+                <p><strong>KYC Documents Received:</strong> {selectedTransaction.kyc_documents_received ? '✓ Yes' : '✗ No'}</p>
                 <p><strong>KYC Notes:</strong> {selectedTransaction.kyc_notes || 'N/A'}</p>
               </div>
             </div>

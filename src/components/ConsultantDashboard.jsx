@@ -25,13 +25,20 @@ export default function ConsultantDashboard() {
 
   const recordAudit = async (action, details = {}) => {
     try {
-      await supabase.from('audit_logs').insert([{
+      console.log('Recording audit:', action, details)
+      const result = await supabase.from('audit_logs').insert([{
         actor: currentUser?.username || 'unknown',
         action,
         details: JSON.stringify(details)
       }])
+      if (result.error) {
+        console.error('Audit log error:', result.error)
+        throw result.error
+      }
+      console.log('Audit log insert result:', result)
     } catch (err) {
-      console.warn('Audit log failed', err.message)
+      console.error('Audit log failed:', err)
+      throw err
     }
   }
 
@@ -217,9 +224,9 @@ export default function ConsultantDashboard() {
           total_gross_profit: editedTransaction.total_gross_profit,
           admin_details: editedTransaction.admin_details,
           customer_risk_matrix: editedTransaction.customer_risk_matrix,
-          tfs_sanction_screening: editedTransaction.tfs_sanction_screening,
+          tfs_screening: editedTransaction.tfs_screening,
           aml_report_number: editedTransaction.aml_report_number,
-          kyc_documents: editedTransaction.kyc_documents,
+          kyc_documents_received: editedTransaction.kyc_documents_received,
           kyc_notes: editedTransaction.kyc_notes,
           invoiced: editedTransaction.invoiced,
           proof_of_payment: editedTransaction.proof_of_payment,
@@ -228,15 +235,15 @@ export default function ConsultantDashboard() {
           supplier_paid: editedTransaction.supplier_paid,
           buyback_paid: editedTransaction.buyback_paid,
           stock_ordered: editedTransaction.stock_ordered,
-          treasury_stock: editedTransaction.treasury_stock,
+          treasury_stock_control: editedTransaction.treasury_stock_control,
           treasury_stock_notes: editedTransaction.treasury_stock_notes,
           packaged: editedTransaction.packaged,
           collection_branch: editedTransaction.collection_branch,
           collection_form: editedTransaction.collection_form,
           collection_date: editedTransaction.collection_date,
           stock_reorder_notes: editedTransaction.stock_reorder_notes,
-          audit: editedTransaction.audit,
-          ai_review: editedTransaction.ai_review,
+          internal_external_audit: editedTransaction.internal_external_audit,
+          ai_systems_review: editedTransaction.ai_systems_review,
           notes: editedTransaction.notes
         })
         .eq('id', editedTransaction.id)
@@ -244,10 +251,64 @@ export default function ConsultantDashboard() {
 
       if (error) throw error
 
-      // Update SharePoint Excel
+      // Track changed fields for audit log
+      const changedFields = {}
+      const fieldsToTrack = [
+        'client_type', 'client_name', 'id_passport', 'company_name', 'registration_number',
+        'transaction_type', 'transaction_date', 'order_branch', 'sales_consultant',
+        'items', 'total_gross_profit', 'admin_details', 'customer_risk_matrix',
+        'tfs_screening', 'aml_report_number', 'kyc_documents_received', 'kyc_notes',
+        'invoiced', 'proof_of_payment', 'payment_receipt', 'payment_method',
+        'supplier_paid', 'buyback_paid', 'stock_ordered', 'treasury_stock_control',
+        'treasury_stock_notes', 'stock_reorder_notes', 'packaged', 'collection_branch',
+        'collection_form', 'collection_date', 'internal_external_audit', 'ai_systems_review', 'notes'
+      ]
+      
+      fieldsToTrack.forEach(key => {
+        const oldVal = selectedTransaction[key]
+        const newVal = editedTransaction[key]
+        // Compare values, handling different types (including objects for items)
+        if (key === 'items' || typeof oldVal === 'object' || typeof newVal === 'object') {
+          const oldStr = JSON.stringify(oldVal)
+          const newStr = JSON.stringify(newVal)
+          if (oldStr !== newStr) {
+            changedFields[key] = { from: 'previous value', to: 'updated value' }
+          }
+        } else {
+          const oldStr = oldVal == null ? '' : String(oldVal)
+          const newStr = newVal == null ? '' : String(newVal)
+          if (oldStr !== newStr) {
+            changedFields[key] = {
+              from: oldVal,
+              to: newVal
+            }
+          }
+        }
+      })
+      
+      console.log('Changed fields:', changedFields) // Debug log
+      console.log('Number of changes:', Object.keys(changedFields).length)
+      
+      // Record audit log (do this BEFORE SharePoint so it always happens)
+      if (Object.keys(changedFields).length > 0) {
+        try {
+          await recordAudit('transaction_update', {
+            transaction_id: editedTransaction.id,
+            client_name: editedTransaction.client_name || data?.[0]?.client_name,
+            company: data?.[0]?.companies?.name,
+            changes: changedFields
+          })
+          console.log('✅ Audit log recorded successfully')
+        } catch (auditError) {
+          console.error('❌ Audit log failed:', auditError)
+        }
+      } else {
+        console.log('⚠️ No changes detected, skipping audit log')
+      }
+
+      // Update SharePoint Excel (after audit log)
       if (data && data[0]) {
         try {
-          // Add company name to the data for SharePoint routing
           const sharePointData = {
             ...data[0],
             company_name: data[0].companies?.name || null
@@ -258,15 +319,9 @@ export default function ConsultantDashboard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sharePointData)
           })
-          await recordAudit('transaction_update', {
-            transaction_id: editedTransaction.id,
-            client_name: editedTransaction.client_name,
-            client_id: editedTransaction.id_passport,
-            actor: currentUser?.username,
-            fields: Object.keys(editedTransaction || {})
-          })
+          console.log('✅ SharePoint updated')
         } catch (spError) {
-          console.error('Error updating SharePoint:', spError)
+          console.error('❌ SharePoint update failed:', spError)
           // Don't fail the edit if SharePoint fails
         }
       }
@@ -909,12 +964,12 @@ export default function ConsultantDashboard() {
                   <strong>TFS/ Sanction Screening:</strong> {editMode ? (
                     <input
                       type="checkbox"
-                      checked={editedTransaction.tfs_sanction_screening || false}
-                      onChange={(e) => setEditedTransaction({...editedTransaction, tfs_sanction_screening: e.target.checked})}
+                      checked={editedTransaction.tfs_screening || false}
+                      onChange={(e) => setEditedTransaction({...editedTransaction, tfs_screening: e.target.checked})}
                       style={{ marginLeft: '10px' }}
                     />
                   ) : (
-                    <span> {selectedTransaction.tfs_sanction_screening ? '✓ Yes' : '✗ No'}</span>
+                    <span> {selectedTransaction.tfs_screening ? '✓ Yes' : '✗ No'}</span>
                   )}
                 </p>
                 <p>
@@ -933,12 +988,12 @@ export default function ConsultantDashboard() {
                   <strong>KYC Documents Received:</strong> {editMode ? (
                     <input
                       type="checkbox"
-                      checked={editedTransaction.kyc_documents || false}
-                      onChange={(e) => setEditedTransaction({...editedTransaction, kyc_documents: e.target.checked})}
+                      checked={editedTransaction.kyc_documents_received || false}
+                      onChange={(e) => setEditedTransaction({...editedTransaction, kyc_documents_received: e.target.checked})}
                       style={{ marginLeft: '10px' }}
                     />
                   ) : (
-                    <span> {selectedTransaction.kyc_documents ? '✓ Yes' : '✗ No'}</span>
+                    <span> {selectedTransaction.kyc_documents_received ? '✓ Yes' : '✗ No'}</span>
                   )}
                 </p>
                 <p>
