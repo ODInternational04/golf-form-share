@@ -851,12 +851,12 @@ export default function AdminDashboard() {
         const items = Array.isArray(t.items) ? t.items : []
         
         return items.map((item, index) => ({
+          'Sales Consultant': t.sales_consultant,
           'Submission Date': new Date(t.submission_date).toLocaleDateString(),
           'Transaction Date': new Date(t.transaction_date).toLocaleDateString(),
           'Client Name': t.client_name,
           'ID/Passport': t.id_passport,
           'Order Branch': t.order_branch,
-          'Sales Consultant': t.sales_consultant,
           'Item Name': item.name || '',
           'Quantity': item.qty || 0,
           'Unit Price (R)': item.unitPrice || 0,

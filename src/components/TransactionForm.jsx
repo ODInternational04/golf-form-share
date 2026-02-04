@@ -440,9 +440,24 @@ export default function TransactionForm() {
       )}
 
       <form onSubmit={handleSubmit}>
-        {/* 1. CLIENT DETAILS */}
+        {/* 1. SALES CONSULTANT */}
         <div className="section">
-          <div className="section-title">1. CLIENT DETAILS</div>
+          <div className="section-title">1. SALES CONSULTANT</div>
+          <div className="form-group">
+            <label>SALES CONSULTANT:</label>
+            <input
+              type="text"
+              value={formData.salesConsultant}
+              onChange={(e) => setFormData({ ...formData, salesConsultant: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        {/* 2. CLIENT DETAILS & SALES DETAILS */}
+        <div className="section">
+          <div className="section-title">2. CLIENT DETAILS & SALES DETAILS</div>
+          
           <div className="form-group">
             <label>Date:</label>
             <input
@@ -520,11 +535,7 @@ export default function TransactionForm() {
               </div>
             </>
           )}
-        </div>
 
-        {/* 2. SALES DETAILS */}
-        <div className="section">
-          <div className="section-title">2. SALES DETAILS</div>
           <div className="form-group">
             <label>BRANCH (Order Location):</label>
             <input
@@ -532,15 +543,6 @@ export default function TransactionForm() {
               value={formData.orderBranch}
               onChange={(e) => setFormData({ ...formData, orderBranch: e.target.value })}
               placeholder="Enter branch where order was made"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>SALES CONSULTANT:</label>
-            <input
-              type="text"
-              value={formData.salesConsultant}
-              onChange={(e) => setFormData({ ...formData, salesConsultant: e.target.value })}
               required
             />
           </div>

@@ -92,15 +92,15 @@ class GraphService {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Transactions');
 
-    // Add headers - Transaction ID first (hidden), then match AdminDashboard downloadExcel
+    // Add headers - Transaction ID first (hidden), then Sales Consultant, then rest
     worksheet.columns = [
       { header: 'Transaction ID', key: 'transactionId', width: 36 },
+      { header: 'Sales Consultant', key: 'salesConsultant', width: 25 },
       { header: 'Submission Date', key: 'submissionDate', width: 18 },
       { header: 'Transaction Date', key: 'transactionDate', width: 18 },
       { header: 'Client Name', key: 'clientName', width: 25 },
       { header: 'ID/Passport', key: 'idPassport', width: 20 },
       { header: 'Order Branch', key: 'orderBranch', width: 20 },
-      { header: 'Sales Consultant', key: 'salesConsultant', width: 25 },
       { header: 'Item Name', key: 'itemName', width: 30 },
       { header: 'Quantity', key: 'quantity', width: 12 },
       { header: 'Unit Price (R)', key: 'unitPrice', width: 15 },
@@ -261,12 +261,12 @@ class GraphService {
 
     return [
       transaction.id || '',
+      transaction.sales_consultant || '',
       transaction.submission_date || new Date().toISOString(),
       transaction.transaction_date || transaction.date || '',
       transaction.client_name || '',
       transaction.id_passport || '',
       transaction.order_branch || '',
-      transaction.sales_consultant || '',
       firstItem.name || '',
       firstItem.qty || '',
       firstItem.unitPrice || '',
