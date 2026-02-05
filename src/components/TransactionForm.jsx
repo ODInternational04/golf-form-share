@@ -538,13 +538,20 @@ export default function TransactionForm() {
 
           <div className="form-group">
             <label>BRANCH (Order Location):</label>
-            <input
-              type="text"
+            <select
               value={formData.orderBranch}
               onChange={(e) => setFormData({ ...formData, orderBranch: e.target.value })}
-              placeholder="Enter branch where order was made"
               required
-            />
+            >
+              <option value="">Select Branch...</option>
+              <option value="london">London</option>
+              <option value="dubai">Dubai</option>
+              <option value="gateway">Gateway</option>
+              <option value="prive">Prive</option>
+              <option value="sandton">Sandton</option>
+              <option value="alice lane">Alice Lane</option>
+              <option value="rosebank">Rosebank</option>
+            </select>
           </div>
 
           <div className="form-group">
